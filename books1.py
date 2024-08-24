@@ -11,7 +11,6 @@ def search_books(query, api_key=None):
     Returns:
         A dictionary containing the search results, or None if an error occurred.
     """
-
     url = "https://www.googleapis.com/books/v1/volumes"
     params = {'q': query}
 
@@ -22,9 +21,13 @@ def search_books(query, api_key=None):
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching data from Google Books API: {e}")
-        return None
+    except requests.exceptions.HTTPError as http_err:
+        st.error(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        st.error(f"Request error occurred: {req_err}")
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+    return None
 
 def main():
     st.title("Google Books Search App")
@@ -34,7 +37,7 @@ def main():
     query = st.text_input("Enter book title")
 
     # Retrieve API key securely from Streamlit secrets
-    api_key = st.secrets["GOOGLE_BOOKS_API_KEY"]
+    api_key = st.secrets.get("GOOGLE_BOOKS_API_KEY", None)
 
     if query:
         # Call the search_books function with the query and API key
