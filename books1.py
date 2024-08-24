@@ -26,7 +26,7 @@ def main():
     query = st.text_input("Enter book title")
 
     # Retrieve API key from Streamlit secrets
-    api_key = st.secrets["GOOGLE_BOOKS_API_KEY"]
+    api_key = st.secrets["GOOGLE_API_KEY"]
 
     if query:
         # Call the search_books function with the query and API key
