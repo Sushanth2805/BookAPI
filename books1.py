@@ -1,78 +1,46 @@
 import streamlit as st
 import requests
 
-def search_books(query, api_key=None):
-    """Searches for books using the Google Books API.
-
-    Args:
-        query: The search query.
-        api_key: The Google Books API key (optional).
-
-    Returns:
-        A dictionary containing the search results, or None if an error occurred.
-    """
-    url = "https://www.googleapis.com/books/v1/volumes"
-    params = {'q': query}
-
-    if api_key:
-        params['key'] = api_key
+# Function to search books using the Open Library API
+def search_books(title):
+    url = "https://openlibrary.org/search.json"
+    params = {'title': title}
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        return response.json()
     else:
-        st.error("API key is missing. Please add your Google Books API key to the secrets.")
+        st.error("Error fetching data from Open Library API")
         return None
 
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        if response.status_code == 403:
-            st.error("HTTP 403 Forbidden: API key may be invalid or quota exceeded. Check your API key.")
-        else:
-            st.error(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.RequestException as req_err:
-        st.error(f"Request error occurred: {req_err}")
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
-    return None
-
+# Streamlit app layout
 def main():
-    st.title("Google Books Search App")
-    st.write("Search for books by title using the Google Books API")
+    st.title("Book Search App")
+    st.write("Search for books by title using the Open Library API")
 
     # Input field for the book title
-    query = st.text_input("Enter book title")
+    title = st.text_input("Enter book title")
 
-    # Retrieve API key securely from Streamlit secrets
-    api_key = st.secrets.get("GOOGLE_BOOKS_API_KEY", None)
-
-    if query:
-        # Call the search_books function with the query and API key
-        results = search_books(query, api_key)
-
-        if results and 'items' in results:
-            for item in results['items']:
-                volume_info = item.get('volumeInfo', {})
-
-                # Display book title or a default message
-                st.write(f"### {volume_info.get('title', 'No Title Found')}")
-
-                # Handle missing or multiple authors
-                authors = ', '.join(volume_info.get('authors', ['Unknown Author']))
+    if title:
+        results = search_books(title)
+        
+        if results and results.get('docs'):
+            for book in results['docs'][:2]:  # Displaying top 10 results
+                st.write(f"### {book.get('title')}")
+                authors = ', '.join(book.get('author_name', ['Unknown Author']))
                 st.write(f"**Author(s):** {authors}")
-
-                # Display published date or a default message
-                published_date = volume_info.get('publishedDate', 'N/A')
-                st.write(f"**Published Date:** {published_date}")
-
+                st.write(f"**First Publish Year:** {book.get('first_publish_year', 'N/A')}")
+                
                 # Display book cover if available
-                if 'imageLinks' in volume_info and 'thumbnail' in volume_info['imageLinks']:
-                    st.image(volume_info['imageLinks']['thumbnail'], width=150)
-
-                # Display book description or a default message
-                description = volume_info.get('description', 'No description available.')
+                cover_id = book.get('cover_i')
+                if cover_id:
+                    cover_url = f"http://covers.openlibrary.org/b/id/{cover_id}-M.jpg"
+                    st.image(cover_url, width=150)
+                
+                # Display book plot/description if available
+                description = book.get('first_sentence') or book.get('subtitle') or "No description available."
                 st.write(f"**Description:** {description}")
-
-                # Add a horizontal separator between books
+                
                 st.write("---")
         else:
             st.write("No books found. Please try another title.")
