@@ -16,7 +16,7 @@ def search_books(title):
 # Streamlit app layout
 def main():
     st.title("Book Search App")
-    st.write("Search for books by title using the Open Library API")
+    st.write("Search for books by title")
 
     # Input field for the book title
     title = st.text_input("Enter book title")
