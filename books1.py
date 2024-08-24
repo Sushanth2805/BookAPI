@@ -16,13 +16,19 @@ def search_books(query, api_key=None):
 
     if api_key:
         params['key'] = api_key
+    else:
+        st.error("API key is missing. Please add your Google Books API key to the secrets.")
+        return None
 
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
     except requests.exceptions.HTTPError as http_err:
-        st.error(f"HTTP error occurred: {http_err}")
+        if response.status_code == 403:
+            st.error("HTTP 403 Forbidden: API key may be invalid or quota exceeded. Check your API key.")
+        else:
+            st.error(f"HTTP error occurred: {http_err}")
     except requests.exceptions.RequestException as req_err:
         st.error(f"Request error occurred: {req_err}")
     except Exception as e:
