@@ -1,24 +1,31 @@
 import streamlit as st
 import requests
 
-# Function to search books using the Google Books API
 def search_books(query, api_key=None):
+    """Searches for books using the Google Books API.
+
+    Args:
+        query: The search query.
+        api_key: The Google Books API key (optional).
+
+    Returns:
+        A dictionary containing the search results, or None if an error occurred.
+    """
+
     url = "https://www.googleapis.com/books/v1/volumes"
     params = {'q': query}
 
-    if api_key:  # Use the API key if provided
+    if api_key:
         params['key'] = api_key
 
-    response = requests.get(url, params=params)
-
-    if response.status_code == 200:
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
-    else:
-        st.error(f"Error fetching data from Google Books API: {response.status_code}")
-        st.write(response.text)  # Add this line to print the error response
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching data from Google Books API: {e}")
         return None
 
-# Streamlit app layout
 def main():
     st.title("Google Books Search App")
     st.write("Search for books by title using the Google Books API")
@@ -26,7 +33,7 @@ def main():
     # Input field for the book title
     query = st.text_input("Enter book title")
 
-    # Retrieve API key from Streamlit secrets
+    # Retrieve API key securely from Streamlit secrets
     api_key = st.secrets["GOOGLE_BOOKS_API_KEY"]
 
     if query:
@@ -36,19 +43,27 @@ def main():
         if results and 'items' in results:
             for item in results['items']:
                 volume_info = item.get('volumeInfo', {})
-                st.write(f"### {volume_info.get('title', 'No Title')}")
+
+                # Display book title or a default message
+                st.write(f"### {volume_info.get('title', 'No Title Found')}")
+
+                # Handle missing or multiple authors
                 authors = ', '.join(volume_info.get('authors', ['Unknown Author']))
                 st.write(f"**Author(s):** {authors}")
-                st.write(f"**Published Date:** {volume_info.get('publishedDate', 'N/A')}")
+
+                # Display published date or a default message
+                published_date = volume_info.get('publishedDate', 'N/A')
+                st.write(f"**Published Date:** {published_date}")
 
                 # Display book cover if available
                 if 'imageLinks' in volume_info and 'thumbnail' in volume_info['imageLinks']:
                     st.image(volume_info['imageLinks']['thumbnail'], width=150)
 
-                # Display book description if available
+                # Display book description or a default message
                 description = volume_info.get('description', 'No description available.')
                 st.write(f"**Description:** {description}")
 
+                # Add a horizontal separator between books
                 st.write("---")
         else:
             st.write("No books found. Please try another title.")
